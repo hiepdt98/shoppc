@@ -1,212 +1,291 @@
-﻿<?php
-if(!isset($_SESSION)) session_start();
-ob_start();
-if (isset($_SESSION["gh"]))
-  $gh = $_SESSION["gh"];
-else
- $gh = array();
+<?php
+if (!isset($_SESSION)) session_start();
+include "config.php";
+include ROOT."/include/function.php";
+include "autoload.php";
+$db= new Db();
+$cart = new Cart();
+$a = new Dh();
+$ac= getIndex("ac");
 
-$id = "";
-$sl=1;
-
-if (isset($_GET["sl"]))
+if ($ac=="add")
 {
-	$sl = $_GET["sl"];
-	$sl =floor($sl*1);
-}
+	$quantity = getIndex("quantity", 1);
+	$id = getIndex("id");
 
-if (isset($_GET["id"])) $id=$_GET["id"];
-/*$hoten=$_GET["hoten"];
-$diachi=$_GET["diachi"];
-$email=$_GET["email"];
-$dt=$_GET["dt"];
-$fax=$_GET["fax"];
-$cty=$_GET["cty"];
-$anti=$_GET["anti"];*/
-
-$act = "add";
-if (isset($_GET["act"])) $act=$_GET["act"];
-if ($act=="add") 
-	themGH($id, $sl);
-if ($act=="update")
-   capnhatGH( $id, $sl);
-if ($act=="delete")
-   xoaGH( $id);
-if ($act=="tt") dathang($gh,$hoten);
-hienthiGH($gh);
-
-//========================
-function themGH($id, $sl)
-{
-  global $gh;
-  //echo "themGH($id, $sl)";
-   if (isset($gh[$id])) 
-    {
-       $gh[$id] = $gh[$id]+$sl;
-    }
-  else
-       $gh[$id] = $sl;
-  $_SESSION["gh"] =$gh;
-}
-
-function hienthiGH($gh)
-{
-  mysql_connect("localhost", "root", "root");
-  mysql_select_db("vietducdb");
-    echo "<table width=560 border=0 cellspacing=0 cellpadding=0 style=\"border:1px solid #333\">
-<tr>
-    <td colspan=6 class=tieude align=center>GIỎ HÀNG CỦA QUÝ KHÁCH</td>
-  </tr>
-  <tr bgcolor=\"#00FFFF\" align=center height=30 style=\"font-weight:bold\">
-    <td width=\"80\" style=\"border-right:1px solid #666\">Sản phẩm</td>
-    <td width=\"60\" style=\"border-right:1px solid #666\">Số lượng</td>
-    <td width=\"85\" style=\"border-right:1px solid #666\">Giá</td>
-    <td width=\"85\" style=\"border-right:1px solid #666\">Tổng</td>
-	<td width=\"50\" style=\"border-right:1px solid #666\">Cập Nhật</td>	
-    <td width=\"50\" >Xóa</td>                
-  </tr>";
-$tongtien=0;
-    foreach($gh as $id=>$sl)
-      {
-		if($id!=""){	
-		 $sql = "select * from sanpham where id='$id' ";
-         $ketqua = mysql_query($sql); 		 
-         $r = mysql_fetch_array($ketqua);
-		
-        	$id=$r["id"];
-			$tensp=$r["tensp"];
-			$gia=$r["gia"]; $gia2=number_format($gia,0,'','.');
-			$tong=$gia*$sl; $tong2=number_format($tong,0,'','.');
-			$tongtien+=$tong;$tongtien2=number_format($tongtien,0,'','.');				
-	//	 $hinh = "images_data/".$dong["hinh"];
-		
-          echo "<tr align=\"center\" height=\"30\" >
-    		
-            <td style=\"border-right:1px solid #666; border-bottom:1px solid #666\">$tensp</td>
-            <td style=\"border-right:1px solid #666; border-bottom:1px solid #666\">
-			<form id='f$id'>
-			<input type=hidden name='act' /><input type=hidden name=id value='$id' />
-            <input type=\"text\" name=\"sl\" value='$sl' style=\"width:30px\" />  
-            </td></form>
-            <td align=\"right\" style=\"border-right:1px solid #666; border-bottom:1px solid #666; padding-right:3px\">$gia2 VND</td>
-            <td align=\"right\" style=\"border-right:1px solid #666; border-bottom:1px solid #666; padding-right:3px\">$tong2 VND</td>
-            <td style=\" border-bottom:1px solid #666; border-right:1px solid #666\" >
-            <a onClick=\"subMitF('f$id', 'update');\">Cập Nhật</a>
-            </td>               
-            <td style=\" border-bottom:1px solid #666\" >
-			<a onClick=\"subMitF('f$id', 'delete');\">Xóa</a>
-            </td>               
-     	  </tr>";
-	  }
-	  }
-  echo "<tr>
-  	<td height=30 colspan=6 align=right style=\"padding-right:5px; padding-bottom:5px; color:#F00\">Tổng số tiền phải thanh toán: $tongtien2 VND</td></tr>";
-  echo "<tr>
-  	<td colspan=\"6\" style=\" border-bottom:1px solid #666\" bgcolor=\"#0000FF\" align=\"center\" height=\"35\">
-	<form name=form>
-    <input type=\"button\" name=\"tieptucmuahang\" value=\"Tiếp Tục Mua Hàng\" class=\"button3\" onmouseover=\"style.background='url(images/button-150-2.png)'\" onmouseout=\"style.background='url(images/button-150.png)'\" onclick=\"document.form.action='list.php'; document.form.submit();\" />
-	<input type=\"button\" name=\"dathang\" value=\"Đặt Hàng\" class=\"button2\" onmouseover=\"style.background='url(images/button-110-2.png)'\" onmouseout=\"style.background='url(images/button-110.png)'\" onclick=\"document.getElementById('thanhtoan').style.display='block'\"/>
-	</form>
-
-    </td>
-  </tr>";  
-    echo "</table>";
-	echo "<div id='thanhtoan' style='display:none'>
-		<table width=\"560\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"padding-top:10px; border:1px solid #333\">
-		<form id='f$id'>
-		<td colspan=\"6\" class=\"tieude\" align=\"center\">THÔNG TIN LIÊN HỆ</td>
-	  </tr>
-	  <tr>
-		<td height=\"30\"><div style=\"padding-left:70px\">Họ và tên: </div></td>
-		<td width=\"350\">
-		
-		<input type=hidden name='act' /><input type=hidden name=id value='$id' />
-		<input name=\"hoten\" type=\"text\" size=\"35\" maxlength=\"50\" ><font color=\"#FF0000\">*</font></td>
-	  </tr>
-	  <tr>
-		<td height=\"30\"><div style=\"padding-left:70px\">Địa chỉ:</div></td>
-		<td><input name=\"diachi\" type=\"text\" size=\"35\" maxlength=\"50\"> <font color=\"#FF0000\"> *</font> </td>
-	  </tr>
-	  <tr>
-		<td height=\"30\"><div style=\"padding-left:70px\">Email:</div> </td>
-		<td><input name=\"email\" type=\"text\" size=\"35\" maxlength=\"50\"> <font color=\"#FF0000\"> *</font></td>
-	  </tr>
-	  <tr>
-		<td height=\"30\"><div style=\"padding-left:70px\">Số điện thoại:</div></td>
-		<td><input name=\"dt\" type=\"text\" size=\"35\" maxlength=\"50\" > <font color=\"#FF0000\"> *</font></td>
-	  </tr>
-	  <tr>
-		<td height=\"30\"><div style=\"padding-left:70px\">Fax:</div></td>
-		<td><input name=\"fax\" type=\"text\" size=\"35\" maxlength=\"50\"></td>
-	  </tr>
-	  <tr>
-		<td height=\"30\"><div style=\"padding-left:70px\">Công ty:</div></td>
-		<td><input name=\"cty\" type=\"text\" size=\"35\" maxlength=\"50\"></td>
-	  </tr>	  
-      <tr>
-        <td colspan=\"2\" bgcolor=\"#0000FF\" align=\"center\" height=\"35\">
-		<input type=\"button\" value=\"Gửi\" class=\"button\" onmouseover=\"style.background='url(images/button-2.gif)'\" onmouseout=\"style.background='url(images/button.gif)'\" onclick=\"subMitF('f$id', 'tt');\">
-          <input type=\"reset\" value=\"Nhập lại\" class=\"button\" onmouseover=\"style.background='url(images/button-2.gif)'\" onmouseout=\"style.background='url(images/button.gif)'\"  >
-         </td>
-      </tr>
-	  </form> 
-    </table>
-	</div>";
-}
-
-function dathang($gh,$hoten)
-{
-  mysql_connect("localhost", "root", "root");
-  mysql_select_db("shop");
- foreach($gh as $id=>$sl)
-  {	
-	 $sql2 = "insert into hoadon(hoten,id,soluong) values ('$hoten','$id',$sl)";
-	 $sql2.=';';
-	// $ketqua2 = mysql_query($sql2);
-	 echo "$sql2<br>";
+	$cart->add($id, $quantity);
 	
-  }
+	/*echo $id."</br>";
+	echo $quantity;*/exit;
 }
-
-function xoaGH( $item)
-{
-	global $gh;
-
-   if (isset($gh[$item])) 
-    {
-		unset($gh[$item]);
-   		$_SESSION["gh"]=$gh;
-	}
-}
-
-function capnhatGH( $id, $sl)
-{
-		global $gh;
-	
-	if (isset($gh[$id])) 
-    {
-		$gh[$id] = $sl;
-		if ($sl<1)
+//Biến $cart được tạo từ trang chủ index.php
+if ($ac=="del")
 		{
-			unset($gh[$id]);
-		    echo "Xoa...";
+			$quantity = getIndex("quantity", 1);
+			$id = getIndex("id");
+			$cart->remove($id);
 		}
-		$_SESSION["gh"]=$gh;
-	}
-   		
-}
-
+/*print_r($_SESSION["cart"]);exit*/		
 ?>
-<script language="javascript">
-function subMitF(fn, type)
-{
-var a=document.getElementById(fn);
-//alert(a.nodeName);
-b=a.getElementsByTagName('input')[0];
-//alert("Co "+b.length+" node Input");
-b.value=type;
-a.submit();
 
-}
+<!--A Design by W3layouts
+Author: W3layout
+Author URL: http://w3layouts.com
+License: Creative Commons Attribution 3.0 Unported
+License URL: http://creativecommons.org/licenses/by/3.0/
+-->
+<!DOCTYPE HTML>
+<head>
+<title> Smart Store </title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<link href="themes/default/default.css" rel="stylesheet" type="text/css">
+<link href="css/nivo-slider_style.css" rel="stylesheet" type="text/css">
+<!--<link href="css/style_nivo.css" rel="stylesheet" type="text/css">-->
+<link rel="stylesheet" href="css/bootstrap.min.css">
+<link href="css/menu_1.css" rel="stylesheet" type="text/css" />
+<link href="css/font-awesome.css" rel="stylesheet"> 
+
+<link href="css/style_login_second.css" rel='stylesheet' type='text/css' />
+
+<link href="css/style_index.css" rel="stylesheet" type="text/css" />
+<link href="css/style_cart.css" rel="stylesheet" type="text/css" />
+
+<!--<link href='http://fonts.googleapis.com/css?family=Monda' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Doppio+One' rel='stylesheet' type='text/css'>-->
+</head>
+<body>
+ <div class="container">
+  <div class="wrap">
+	<div class="header">
+		<div class="header_top">
+		
+			<div class="logo">
+				<a href="index.php"><img src="images/logo.png"  /></a>
+			</div>
+			  <div class="header_top_right">
+			    <div class="search_box">
+				    <form>
+				    	<input type="text" value="Search for Products" onfocus="this.value = '';" onblur="if (this.value == '') {this.value = 'Search for Products';}"><input type="submit" value="SEARCH">
+				    </form>
+			    </div>
+			    <div class="shopping_cart">
+					<div class="cart">
+						<a href="giohang.php" title="View my shopping cart" rel="nofollow">
+							<strong class="opencart"> </strong>
+								<span class="cart_title">Giỏ hàng(<span id="cart_sumary"><?php echo  $cart->getNumItem();
+								?></span>)</span>
+							</a>
+						</div>
+			    </div>
+			<?php
+					if (!isset($_SESSION["loginfront"]))
+					{
+				?>
+			   <div class="login">
+				   <span><a href="login.php"><img src="images/login.png" alt="" title="login"/></a></span>
+			   </div>
+			  <a href="dangky.php"><button class="btn btn-default"><span class="glyphicon glyphicon-off"></span> Đăng ký</button></a><?php } 
+			  else
+			  {
+			  ?>
+			  <ul class="nav navbar-nav navbar-right">
+			    <li class="dropdown">
+	        		<a href="#" class="dropdown-toggle avatar" data-toggle="dropdown"><span><?php  
+                                                                                                    	if (isset($_SESSION["loginfront"])) {
+                                                                                                    	// $kitu = str_word_count($_SESSION["loginfront"]["0"]["TenKH"]);
+                                                                                                    	// $chuoi = explode(" ", $_SESSION["loginfront"]["0"]["TenKH"]);
+                                                                                                    	/*print_r($chuoi);*/
+                                                                                                    	// $ten = $chuoi[$kitu-1];
+
+                                                                                                        echo "Xin chào, ".$_SESSION["loginfront"]["0"]["TenKH"];
+                                                                                                    }
+                                                                                                        ?>
+                                                                                                </span><i class="fa fa-user"></i></a>
+	        		<ul class="dropdown-menu">
+						
+						<li class="dropdown-menu-header text-center">
+							<strong>Cài đặt</strong>
+						</li>
+						<li class="m_2"><a href="#"><i class="fa fa-user"></i> Thông tin tài khoản</a></li>
+						<li class="m_2"><a href="#"><i class="fa  fa-cog"></i> Đổi mật khẩu</a></li>
+						<li class="m_2"><a href="logout.php"><i class="fa fa-lock"></i> Logout</a></li>	
+	        		</ul>
+	      		</li>
+			</ul>
+			<?php } ?>
+	 		</div>
+	 	</div>
+	  </div>
+  </div>
+</div>
+<div class="container">
+	<ul class="ul_menu">
+		<li><a href="dienthoai.php">ĐIỆN THOẠI</a>
+			<ul class="menu">
+				<li><a href="apple.php">Apple</a></li>
+				<li><a href="samsung.php">Samsung</a></li>
+				<li><a href="oppo_f3.php">Oppo</a></li>
+				<li><a href="#">Vivo</a></li>
+				<li><a href="#">Nokia</a></li>
+				<li><a href="#">Sony</a></li>
+				<li><a href="#">Asus</a></li>
+				<li><a href="#">Htc</a></li>
+			</ul>
+		</li>
+  		<li><a href="#">PHỤ KIỆN</a>
+        	<div class="phukien">
+        		<div class="content_pk">
+        			<h3>Các sản phẩm phụ kiện</h3>                 
+                    <ul>  
+                    	<li><a href="thenho.php">Thẻ nhớ</a></li>
+                        <li><a href="#">Sạc cáp</a></li>
+                        <li><a href="#">Phụ kiện Apple</a></li>  
+                    	<li><a href="#">Bao da ốp lưng</a></li>        
+                    </ul>
+                </div>
+                <div class="clear"></div>
+                <div class="content_pk_2">
+                    <ul>  
+                    		<li><a href="#">Sạc dự phòng</a></li>                       	
+                            <li><a href="#">Tai nghe</a></li>    
+                            <li><a href="#">Miếng dán màn hình</a></li>
+                            <li><a href="#">Phụ kiện khác</a></li>
+                    </ul>
+                </div>
+                	<div class="content_pk_3">
+        			<h3>BÁN CHẠY NHẤT</h3>                 
+                    <ul class="menu_pk">  
+                    	<li><a href="thenho.php">
+                    		<div class="hinh">
+							<img src="images/phukien_num.png">
+							</div>
+							<div class="nd_menu">
+								<span>Loa bluetooth Rocky CR-X6</span>
+								<p>599.000 ₫</p>
+							</div>	
+                       </a></li>
+                       <li><a href="#">
+                    		<div class="hinh_2">
+							<img src="images/phukien_head.png">
+							</div>
+							<div class="nd_menu_2">
+								<span>Mic Karaoke kèm loa Bluetooth và SDP </span>
+								<p>750.000 ₫</p>
+							</div>	
+                       		</a> 
+						</li>     
+                    </ul>
+            	</div>
+            </div>
+        	
+        </li>
+  		<li><a href="#">THẺ,SIM</a></li>
+   		<li><a href="#">MÁY ĐỔI TRẢ</a></li>
+   		<li><a href="#">HÀNG CŨ</a></li>
+ 		<li><a href="faq.php">KHUYẾN MÃI</a></li>
+  		<li><a href="contact.php">TRẢ GÓP</a></li>
+	</ul>
+</div>
+ <div class="container">
+	<?php
+		$cart->show();
+		$nl= Date("Y-m-d");
+		$ma= $a->chuoiTuDong();
+		/*$data = $a->insert($ma,NULL,$_SESSION["loginfront"][0]["MaKH"],$_SESSION["loginfront"][0]["TenKH"],$_SESSION["loginfront"][0]["SDT"],$nl,NULL,0,"Chưa duyệt");*/
+		/*$cart->saveDonHang($ma,NULL,$_SESSION["loginfront"][0]["MaKH"],$_SESSION["loginfront"][0]["TenKH"],$_SESSION["loginfront"][0]["SDT"],NULL,0,"Chưa duyệt");*/
+		?>
+		<button onclick="self.location.href='donhang.php'">ĐẶT HÀNG
+		</button>
+</div>
+  <div style="clear: both"></div>
+  <div class="container">
+   <div class="footer">
+   	  <div class="wrapper">	
+	     <div class="section group">
+				<div class="col_1_of_4 span_1_of_4">
+						<h4>GIỚI THIỆU VỀ CÔNG TY</h4>
+						<ul>
+						<li><a href="#">Câu hỏi thường gặp mua hàng</a></li>
+						<li><a href="#">Các chính sách FPT Shop</a></li>
+						<li><a href="#">Hệ thống bảo hành</a></li>
+						</ul>
+					</div>
+				<div class="col_1_of_4 span_1_of_4">
+					<h4>TIN TUYỂN DỤNG</h4>
+						<ul>
+						<li><a href="about.php">Tin khuyến mãi</a></li>
+						<li><a href="faq.php">Hướng dẫn mua online</a></li>
+						<li><a href="#">Hướng dẫn mua trả góp</a></li>
+						</ul>
+				</div>
+				<div class="col_1_of_4 span_1_of_4">
+					<h4>HỆ THỐNG CỬA HÀNG</h4>
+						<ul>
+							<li><a href="contact.php">Kiểm tra hàng Apple chính hãng</a></li>
+							<li><a href="index.php">Giới thiệu máy đổi trả</a></li>
+							<li><a href="#">Giới thiệu xả hàng</a></li>
+						</ul>
+				</div>
+				<div class="col_1_of_4 span_1_of_4 support_tt">
+					<h4>
+						Hỗ trợ thanh toán
+						<a href="#"><img src="images/icon_visa.png"></a>
+						<a href="#"><img src="images/icon_atm.png"></a>
+					</h4>
+						<ul>
+							<li class="footer_pay">Tư vẫn miễn phí (24/7) : <span style="color: #d02c2c;">1800 6601 </span> </li>
+						</ul>
+						<div class="social-icons">
+							<h4>LIKE & SHARE</h4>
+					   		  <ul>
+							      <li class="facebook"><a href="#" target="_blank"> </a></li>
+							      <li class="twitter"><a href="#" target="_blank"></a></li>
+							      <li class="googleplus"><a href="#" target="_blank"> </a></li>
+							      <li class="contact"><a href="#" target="_blank"> </a></li>
+							      <div class="clear"></div>
+						     </ul>
+   	 					</div>
+				</div>
+			</div>
+			<div class="copy_right">
+				<p> ©  2007 - 2016 Công Ty Cổ Phần Bán Lẻ Kỹ Thuật Số FPT / Địa chỉ: 261 Khánh Hội, P5, Q4, TP. Hồ Chí Minh / GPĐKKD số 0311609355 do Sở KHĐT TP.HCM cấp ngày 08/03/2012.</p>
+		   </div>
+     </div>
+    </div>
+	  </div>
+
+    <a href="#" id="toTop" style="display: block;"><span id="toTopHover" style="opacity: 1;"></span></a>
+    <link href="css/flexslider.css" rel='stylesheet' type='text/css' />
+							  <script defer src="js/jquery.flexslider.js"></script>
+							  <script type="text/javascript">
+								$(function(){
+								  SyntaxHighlighter.all();
+								});
+								$(window).load(function(){
+								  $('.flexslider').flexslider({
+									animation: "slide",
+									start: function(slider){
+									  $('body').removeClass('loading');
+									}
+								  });
+								});
+							  </script>
+<script type="text/javascript">
+  $(document).ready(function($){
+    $('#dc_mega-menu-orange').dcMegaMenu({rowItems:'4',speed:'fast',effect:'fade'});
+  });
 </script>
-<?php ob_end_flush(); ?>
+<script type="text/javascript" src="js/jquery-3.2.1.min.js"></script>
+<script type="text/javascript" src="js/bootstrap.min.js"></script>
+<script type="text/javascript" src="js/jquery-1.7.1.min.js"></script>
+<script type="text/javascript" src="js/jquery.nivo.slider.js"></script>
+
+<script type="text/javascript">
+    $(window).load(function() {
+        $('#slider').nivoSlider();
+    });
+</script> 
+</body>
+</html>
+
